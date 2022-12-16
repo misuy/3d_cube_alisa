@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- подключаем шрифт -->
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet"> 
+
+		<!-- подключаем css файлик (стили) -->
+		<link rel="stylesheet" type="text/css" href="style.css">
+	</head>
+	<body>
+		<!-- это js-код -->
+		<script type="module">
+			// подключаем библиотеку для 3д графики
+			import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.124/build/three.module.js'; 
+			import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.124/examples/jsm/controls/OrbitControls.js'; 
+			
+
+			// эта функция обрабатывает движение мышки и записывает ее позицию в переменную
+			function onPointerMove(event) {
+				pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+				pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+			}
+
+			// эта функция рендерит 3д сцену
+			function render() {
+				// говорим, что следующий раз при рендере документа надо вызвать эту же функцию
+				requestAnimationFrame(render);
+
+				// меняем цвет всех элементов на красный (чтобы когда мышка вышла за пределы кубика кубик не остался зеленым)
+				const scene_children = scene.children;
+				for (let i=0; i<scene_children.length; i++) {
+					scene_children[i].material.color.set(0xff0000);
+				}
+
+				// удалаяем все надписи (чтобы когда мышка вышла за пределы кубика надпись не оставалась)
+				document.querySelectorAll("div.descriptionText").forEach(element => element.remove());
+
+				// получаем некое положение камеры (ну можно так сказать)
+				raycaster.setFromCamera(pointer, camera);
+
+				// получаем пересечения лучей от объекта и мышки (чтобы понять наведена мышка на кубик, или нет (так как получаем все объекты потом можно получать пересечение с любым объектом, не только кубиком))
+				const intersects = raycaster.intersectObjects(scene_children);
+
+				// перебираем все пересечения и чето с ними делаем
+				for ( let i = 0; i < intersects.length; i ++ ) {
+					// меняем цвет объектов на зеленый (ну у нас только кубик значит меняем цвет кубика)
+					intersects[i].object.material.color.set(0x00ff00);
+
+					// проверяем что этот объект кубик
+					if (intersects[i].object == cube) {
+						// получаем реальную позицию мышки
+						let x = (pointer.x + 1) / 2 * window.innerWidth + 15;
+						let y = (pointer.y - 1) / 2 * window.innerHeight;
+
+						// создаем надпись
+						let text = document.createElement("div");
+						text.innerHTML = "Это кубик :3";
+						text.setAttribute("class", "descriptionText");
+						text.style.left = Math.abs(x) + "px";
+						text.style.top = Math.abs(y) + "px";
+
+						// добавляем надпись на страничку
+						document.body.appendChild(text);
+					}
+				}
+
+				// обновляем положение камеры (клиент может ее вращать и двигать)
+				controls.update();
+
+				// рендерим 3д сцену
+				renderer.render(scene, camera);
+			}
+
+
+
+			// создаем 3д сцену
+			const scene = new THREE.Scene();
+			// создаем камеру (точку откуда клиент смотрит на сцену)
+			const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+			// создаем штуку которая рендерит сцену
+			const renderer = new THREE.WebGLRenderer();
+			// добавляем возможность двигать камеру
+			const controls = new OrbitControls(camera, renderer.domElement);
+			// создаем 3д модель кубика
+			const geometry = new THREE.BoxGeometry(1, 1, 1);
+			// создаем стиль для кубика
+			const material = new THREE.MeshBasicMaterial({color: 0xff0000});
+			// создаем кубик
+			const cube = new THREE.Mesh(geometry, material);
+			// создаем штуку чтобы отслеживать пересечения (ну это сложная штука, с лучами саязанная)
+			const raycaster = new THREE.Raycaster();
+			// переменная для хранения положения мышки
+			const pointer = new THREE.Vector2();
+
+			// говорим какой размер будет у сцены
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+			// добовляем сцену на страничку
+			document.body.appendChild(renderer.domElement);
+
+			// доюавляем кубик на сцену
+			scene.add(cube);
+
+			// задаем начальное положение камеры
+			camera.position.z = 5;
+
+			// говорим чтобы при движении мышки вызывалась функция onPointerMove, которая сохраняет положение мышки
+			window.addEventListener('pointermove', onPointerMove);
+
+			// в первый раз говорм, что ренжерить документ будем с помощью функции render
+			requestAnimationFrame(render);
+		</script>
+	</body>
+</html>
